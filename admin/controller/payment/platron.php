@@ -34,6 +34,10 @@ class ControllerPaymentPlatron extends Controller {
 		$this->data['entry_secret_word'] = $this->language->get('entry_secret_word');
         $this->data['entry_lifetime'] = $this->language->get('entry_lifetime');
 
+		$this->data['entry_ofd_send_receipt'] = $this->language->get('entry_ofd_send_receipt');
+        $this->data['entry_ofd_vat'] = $this->language->get('entry_ofd_vat');
+
+
 		// URL
 		$this->data['copy_result_url'] 	= HTTP_CATALOG . 'index.php?route=payment/platron/callback';
 		$this->data['copy_success_url']	= HTTP_CATALOG . 'index.php?route=payment/platron/success';
@@ -41,6 +45,15 @@ class ControllerPaymentPlatron extends Controller {
 
 		// TEST MODE
 		$this->data['entry_test'] = $this->language->get('entry_test');
+
+		$this->data['ofd_vat_types'] = array(
+			'none' => $this->language->get('entry_ofd_vat_none'),
+			'0' => $this->language->get('entry_ofd_vat_0'),
+			'10' => $this->language->get('entry_ofd_vat_10'),
+			'18' => $this->language->get('entry_ofd_vat_18'),
+			'110' => $this->language->get('entry_ofd_vat_110'),
+			'118' => $this->language->get('entry_ofd_vat_118'),
+		);
 
 		$this->data['entry_order_status'] = $this->language->get('entry_order_status');
 		$this->data['entry_geo_zone'] = $this->language->get('entry_geo_zone');
@@ -143,6 +156,17 @@ class ControllerPaymentPlatron extends Controller {
 			$this->data['platron_order_status_id'] = $this->request->post['platron_order_status_id'];
 		} else {
 			$this->data['platron_order_status_id'] = $this->config->get('platron_order_status_id');
+		}
+
+		if (isset($this->request->post['platron_ofd_send_receipt'])) {
+			$this->data['platron_ofd_send_receipt'] = $this->request->post['platron_ofd_send_receipt'];
+		} else {
+			$this->data['platron_ofd_send_receipt'] = $this->config->get('platron_ofd_send_receipt');
+		}
+		if (isset($this->request->post['platron_ofd_vat'])) {
+			$this->data['platron_ofd_vat'] = $this->request->post['platron_ofd_vat'];
+		} else {
+			$this->data['platron_ofd_vat'] = $this->config->get('platron_ofd_vat');
 		}
 
 		$this->load->model('localisation/order_status');

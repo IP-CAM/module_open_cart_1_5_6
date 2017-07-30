@@ -1,6 +1,26 @@
 <?php
 class ControllerPaymentPlatron extends Controller {
 	protected function index() {
+		$this->language->load('payment/platron');
+
+		$this->data['button_confirm'] = $this->language->get('button_confirm');
+		$this->data['button_back'] = $this->language->get('button_back');
+		$this->data['text_wait'] = $this->language->get('text_wait');
+
+		if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/payment/platron.tpl')) {
+            $this->template = $this->config->get('config_template') . '/template/payment/platron.tpl';
+        } else {
+            $this->template = 'default/template/payment/platron.tpl';
+        }
+
+        $this->render();
+	}
+
+	public function send() {
+		$this->load->library('platron/platronClient');
+		$this->load->library('platron/PlatronSignature');
+		$this->load->library('platron/ofd');
+
         $this->language->load('payment/platron');
 
 		$this->data['button_confirm'] = $this->language->get('button_confirm');
@@ -10,9 +30,26 @@ class ControllerPaymentPlatron extends Controller {
 		$order_products = $this->model_account_order->getOrderProducts($this->session->data['order_id']);
 		$strOrderDescription = "";
 		foreach($order_products as $product){
-			$strOrderDescription .= @$product["name"]." ".@$product["model"]."*".@$product["quantity"].";";
+			$product_descriptions[] = @$product["name"] . " " . @$product["model"] . " * " . @$product["quantity"];
+
+			$ofdReceiptItem = new OfdReceiptItem();
+			$ofdReceiptItem->label = substr(@$product["name"], 0, 128);
+			$ofdReceiptItem->price = round(@$product["price"] + @$product["tax"], 2);
+			$ofdReceiptItem->quantity = round(@$product["quantity"], 3);
+			$ofdReceiptItem->vat = $this->config->get('platron_ofd_vat');
+			$ofdReceiptItems[] = $ofdReceiptItem;
 		}
-		
+
+		if (isset($this->session->data['shipping_method']['cost']) && $this->session->data['shipping_method']['cost'] > 0) {
+			$ofdReceiptItem = new OfdReceiptItem();
+			$ofdReceiptItem->label = 'Доставка';
+			$ofdReceiptItem->price = round($this->session->data['shipping_method']['cost'], 2);
+			$ofdReceiptItem->quantity = 1;
+			$ofdReceiptItem->vat = 18;
+			$ofdReceiptItems[] = $ofdReceiptItem;
+		}
+		$strOrderDescription = implode(';', $product_descriptions);
+
 		$this->load->model('payment/platron');
 		$this->load->model('checkout/order');
 		$order_info = $this->model_checkout_order->getOrder($this->session->data['order_id']);
@@ -28,12 +65,12 @@ class ControllerPaymentPlatron extends Controller {
         $this->load->model('payment/platron');
 		
         $arrReq = array(
-            'pg_amount'         => (int)$order_info['total'],
+            'pg_amount'         => round($order_info['total'], 2),
             'pg_check_url'      => HTTPS_SERVER . 'index.php?route=payment/platron/check',
             'pg_description'    => $strOrderDescription,
             'pg_encoding'       => 'UTF-8',
 			'pg_currency'       => $order_info['currency_code'],
-			'pg_user_ip'		=> $_SERVER['REMOTE_ADDR'],
+			//'pg_user_ip'		=> $_SERVER['REMOTE_ADDR'],
             'pg_lifetime'       => !empty($lifetime) ? $lifetime * 3600 : 86400,
             'pg_merchant_id'    => $merchant_id,
             'pg_order_id'       => $order_info['order_id'],
@@ -42,7 +79,7 @@ class ControllerPaymentPlatron extends Controller {
             'pg_salt'           => rand(21, 43433),
             'pg_success_url'    => HTTPS_SERVER . 'index.php?route=checkout/platron_success',
             'pg_failure_url'    => HTTPS_SERVER . 'index.php?route=checkout/platron_fail',
-            'pg_user_ip'        => $_SERVER['REMOTE_ADDR'],
+            //'pg_user_ip'        => $_SERVER['REMOTE_ADDR'],
             'pg_user_phone'     => $order_info['telephone'],
             'pg_user_contact_email' => $order_info['email'],
 			'cms_payment_module'	=> 'OPENCART',
@@ -53,20 +90,44 @@ class ControllerPaymentPlatron extends Controller {
 			unset($arrReq['pg_currency']);
         }
 
-        $arrReq['pg_sig'] = $this->model_payment_platron->make('payment.php', $arrReq, $secret_word);
+        $arrReq['pg_sig'] = PlatronSignature::make('init_payment.php', $arrReq, $secret_word);
 
-        $query = http_build_query($arrReq);
+        $json = array();
+        $platronClient = new PlatronClient($this->registry);
 
-        $this->data['action'] = 'https://platron.ru/payment.php?' . $query;
+        $init_payment_response = $platronClient->doRequest('https://www.platron.ru/init_payment.php', $arrReq);
+		if (!$init_payment_response) {
+			$json['error'] = $this->language->get('payment_failed');
+		} else if (!PlatronSignature::checkXML('init_payment.php', $init_payment_response, $secret_word)) {
+			$json['error'] = $this->language->get('payment_failed');
+			$this->log->write('Platron init_payment response invalid signature');
+		} else if ($init_payment_response->pg_status == 'error') {
+			$json['error'] = $this->language->get('payment_failed');
+			$this->log->write('Platron init_payment error: ' . $init_payment_response->pg_error_description);
+		}
 
-        if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . '/template/payment/platron.tpl')) {
-            $this->template = $this->config->get('config_template') . '/template/payment/platron.tpl';
-        } else {
-            $this->template = 'default/template/payment/platron.tpl';
-        }
+		if (!isset($json['error']) && $this->config->get('platron_ofd_send_receipt') == 1) {
+			$ofdReceiptRequest = new OfdReceiptRequest($merchant_id, $init_payment_response->pg_payment_id);
+			$ofdReceiptRequest->items = $ofdReceiptItems;
+			$ofdReceiptRequest->prepare();
+			$ofdReceiptRequest->sign($secret_word);
+			$receipt_response = $platronClient->doRequest('https://www.platron.ru/receipt.php', array('pg_xml' => $ofdReceiptRequest->asXml()));
+			if (!$receipt_response) {
+				$json['error'] = $this->language->get('payment_failed');
+			} else if (!PlatronSignature::checkXML('receipt.php', $receipt_response, $secret_word)) {
+				$json['error'] = $this->language->get('payment_failed');
+				$this->log->write('Platron receipt response signature');
+			} else if ($receipt_response->pg_status == 'error') {
+				$json['error'] = $this->language->get('payment_failed');
+				$this->log->write('Platron receipt error: ' . $receipt_response->pg_error_description);
+			}
+		}
 
-        $this->render();
+		if (!isset($json['error'])) {
+			$json['success'] = (string) $init_payment_response->pg_redirect_url;
+		}
 
+		$this->response->setOutput(json_encode($json));
     }
 
     public function check() {

@@ -84,6 +84,33 @@
             <?php } ?>
           </select></td>
       	</tr>
+
+        <tr>
+        <td><?php echo $entry_ofd_send_receipt; ?></td>
+        <td><select name="platron_ofd_send_receipt">
+            <?php if ($platron_ofd_send_receipt) { ?>
+            <option value="1" selected="selected"><?php echo $text_enabled; ?></option>
+            <option value="0"><?php echo $text_disabled; ?></option>
+            <?php } else { ?>
+            <option value="1"><?php echo $text_enabled; ?></option>
+            <option value="0" selected="selected"><?php echo $text_disabled; ?></option>
+            <?php } ?>
+          </select></td>
+      	</tr>
+
+      	<tr>
+        <td><?php echo $entry_ofd_vat; ?></td>
+        <td><select name="platron_ofd_vat">
+            <?php foreach ($ofd_vat_types as $vat_key => $vat_label) { ?>
+            <?php if ($vat_key == $platron_ofd_vat) { ?>
+            <option value="<?php echo $vat_key; ?>" selected="selected"><?php echo $vat_label; ?></option>
+            <?php } else { ?>
+            <option value="<?php echo $vat_key; ?>"><?php echo $vat_label; ?></option>
+            <?php } ?>
+            <?php } ?>
+          </select></td>
+      	</tr>
+      	
       	<tr>
         <td><?php echo $entry_status; ?></td>
         <td><select name="platron_status">
@@ -100,6 +127,7 @@
           <td><?php echo $entry_sort_order; ?></td>
           <td><input type="text" name="platron_sort_order" value="<?php echo $platron_sort_order; ?>" size="1" /></td>
         </tr>
+
       </table>
     </form>
   </div>
