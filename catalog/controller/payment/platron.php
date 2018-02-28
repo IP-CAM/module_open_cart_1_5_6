@@ -69,25 +69,23 @@ class ControllerPaymentPlatron extends Controller {
             'pg_check_url'      => HTTPS_SERVER . 'index.php?route=payment/platron/check',
             'pg_description'    => $strOrderDescription,
             'pg_encoding'       => 'UTF-8',
-			'pg_currency'       => $order_info['currency_code'],
-			//'pg_user_ip'		=> $_SERVER['REMOTE_ADDR'],
+	    'pg_currency'       => $order_info['currency_code'],
             'pg_lifetime'       => !empty($lifetime) ? $lifetime * 3600 : 86400,
             'pg_merchant_id'    => $merchant_id,
             'pg_order_id'       => $order_info['order_id'],
             'pg_result_url'     => HTTPS_SERVER . 'index.php?route=payment/platron/callback',
-			'pg_request_method'	=> 'POST',
+	    'pg_request_method'	=> 'POST',
             'pg_salt'           => rand(21, 43433),
             'pg_success_url'    => HTTPS_SERVER . 'index.php?route=checkout/platron_success',
             'pg_failure_url'    => HTTPS_SERVER . 'index.php?route=checkout/platron_fail',
-            //'pg_user_ip'        => $_SERVER['REMOTE_ADDR'],
             'pg_user_phone'     => $order_info['telephone'],
             'pg_user_contact_email' => $order_info['email'],
-			'cms_payment_module'	=> 'OPENCART',
+	    'cms_payment_module'	=> 'OPENCART',
         );
 
         if($this->config->get('platron_test') == 1) {
-			$arrReq['pg_testing_mode'] = 1;
-			unset($arrReq['pg_currency']);
+		$arrReq['pg_testing_mode'] = 1;
+		unset($arrReq['pg_currency']);
         }
 
         $arrReq['pg_sig'] = PlatronSignature::make('init_payment.php', $arrReq, $secret_word);
