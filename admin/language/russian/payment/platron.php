@@ -23,9 +23,9 @@ $_['entry_ofd_vat'] = 'Налог в чеке:';
 $_['entry_ofd_vat_none'] = 'Не облагается';
 $_['entry_ofd_vat_0'] = 'НДС 0 %';
 $_['entry_ofd_vat_10'] = 'НДС 10 %';
-$_['entry_ofd_vat_18'] = 'НДС 18 %';
+$_['entry_ofd_vat_20'] = 'НДС 20 %';
 $_['entry_ofd_vat_110'] = 'НДС 10/110';
-$_['entry_ofd_vat_118'] = 'НДС 18/118';
+$_['entry_ofd_vat_120'] = 'НДС 20/120';
 
 
 // Error
