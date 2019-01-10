@@ -50,9 +50,9 @@ class ControllerPaymentPlatron extends Controller {
 			'none' => $this->language->get('entry_ofd_vat_none'),
 			'0' => $this->language->get('entry_ofd_vat_0'),
 			'10' => $this->language->get('entry_ofd_vat_10'),
-			'18' => $this->language->get('entry_ofd_vat_18'),
+			'20' => $this->language->get('entry_ofd_vat_20'),
 			'110' => $this->language->get('entry_ofd_vat_110'),
-			'118' => $this->language->get('entry_ofd_vat_118'),
+			'120' => $this->language->get('entry_ofd_vat_120'),
 		);
 
 		$this->data['entry_order_status'] = $this->language->get('entry_order_status');
