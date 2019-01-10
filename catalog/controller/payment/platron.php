@@ -45,7 +45,8 @@ class ControllerPaymentPlatron extends Controller {
 			$ofdReceiptItem->label = 'Доставка';
 			$ofdReceiptItem->price = round($this->session->data['shipping_method']['cost'], 2);
 			$ofdReceiptItem->quantity = 1;
-			$ofdReceiptItem->vat = 18;
+			$ofdReceiptItem->vat = 20;
+			$ofdReceiptItem->type = 'service';
 			$ofdReceiptItems[] = $ofdReceiptItem;
 		}
 		$strOrderDescription = implode(';', $product_descriptions);
